@@ -1,5 +1,4 @@
 import numpy as np
-import torch
 import matplotlib.pyplot as plt
 
 methods = ["adaptive-un-1","adaptive-un", 'tracking-un', "density-un", "random-un"]

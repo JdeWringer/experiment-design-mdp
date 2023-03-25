@@ -1,11 +1,7 @@
 from typing import Callable, Type, Union, Tuple
-from datetime import datetime
-import os
 import autograd.numpy as np
-from autograd import grad, hessian
-import matplotlib.pyplot as plt
+from autograd import grad
 from scipy.optimize import minimize_scalar
-import wandb
 
 from mdpexplore.solvers.solver_base import DiscreteSolver
 from mdpexplore.env.discrete_env import DiscreteEnv
@@ -62,7 +58,6 @@ class MdpExplore():
             self.weights = []
 
         self.densities = []
-        self.objective_values_baseline = []
         self.visitations = []
         self.optimize_repetitions = optimize_repetitions
         self._precompute_emissions()
@@ -82,7 +77,6 @@ class MdpExplore():
         self.trajectory = []
         if reset_visitations:
             self.visitations = []
-            self.objective_values_baseline = []
 
     def _precompute_emissions(self) -> None:
         """Precomputes an emission matrix given the saved environment
@@ -185,13 +179,6 @@ class MdpExplore():
             grad_fn = grad(lambda d: self.objective.eval(self.emissions, d, self.episodes))
         return grad_fn(distribution)
 
-    def _reward_fn_hessian(self, distribution: np.array)->np.array:
-        if self.objective.get_type() == "adaptive":
-            hes_fn = hessian(lambda d: self.objective.eval(self.emissions, d, self.visitations, self.episodes))
-        else:
-            hes_fn = hessian(lambda d: self.objective.eval(self.emissions, d, self.episodes))
-        return hes_fn(distribution)
-
     def _update_data(self):
         if self.callback is not None:
             self.callback(self.trajectory, self.objective)
@@ -200,14 +187,12 @@ class MdpExplore():
             self,
             SummarizedPolicyType: Type[SummarizedPolicy] = MixturePolicy,
             episodes: int = 100,
-            plot: bool = True
     ) -> None:
         """Evaluates the saved policies using chosen summarization method
 
         Args:
             SummarizedPolicyType (Type[SummarizedPolicy], optional): method of policy summarization (Mixture, Density or Average). Defaults to MixturePolicy.
             episodes (int, optional): number of policy rollouts to execute. Defaults to 100.
-            plot (bool, optional): if True, plots the heatmap based on the policy rollouts. Defaults to True.
         """
         empirical = np.zeros(len(self.policies))
         for _ in range(episodes):
@@ -261,21 +246,13 @@ class MdpExplore():
 
         while counter < num_components and empirical_gap > gap:
 
-            # calculate the current density
             density = self._density_oracle()
 
-            # gradient of the reward
             reward = self._reward_fn_gradient(density)
-            if self.objective.get_type() != "adaptive":
-                self.objective_values_baseline.append(self.objective.eval(self.emissions, density, self.episodes))
 
             new_policy = self._planning_oracle(reward)
             self.policies.append(new_policy)
-            #
-            # hess_min = np.min(np.linalg.eigh(self._reward_fn_hessian(density))[0])
-            # hess_max = np.max(np.linalg.eigh(self._reward_fn_hessian(density))[0])
-            hess_min = 0
-            hess_max = 0
+
             # new base density to be added
             new_density = self._density_oracle_single(new_policy)
 
@@ -318,7 +295,7 @@ class MdpExplore():
             empirical_gap = np.minimum(reward @ (new_density - density), empirical_gap)
 
             if verbose:
-                print(f'component: {counter}, gap: {empirical_gap}, objective: {objective}, stepsize: {step_size}, gradient:{la.norm(reward)}, hess_max:{hess_max}, hess_min:{hess_min}')
+                print(f'component: {counter}, gap: {empirical_gap}, objective: {objective}, stepsize: {step_size}, gradient:{la.norm(reward)}')
             self.weights = [(1 - step_size) * weight for weight in self.weights] + [step_size]
 
             counter += 1
@@ -351,7 +328,6 @@ class MdpExplore():
             episodes: int = 100,
             accuracy: float = None,
             SummarizedPolicyType: Type[SummarizedPolicy] = MixturePolicy,
-            plot: bool = False,
             save_trajectory: Union[str, None] = None
     ) -> Union[Tuple[np.ndarray, np.ndarray, float], None]:
         """Runs the full max-ent procedure
@@ -359,10 +335,8 @@ class MdpExplore():
         Args:
             num_components (int): limit on number of components to be obtained by the algorithm
             episodes (int, optional): number of policy rollouts for evaluation. Defaults to 100.
-            num_runs (int, optional): number of max-ent runs. Defaults to 1.
             accuracy (float, optional): optimality gap for the optimization procedure. Defaults to None.
             SummarizedPolicyType (Type[SummarizedPolicy], optional): policy summarization mode to be used. Defaults to MixturePolicy.
-            plot (bool, optional): if True, plots the resulting heatmaps. Defaults to True.
 
         Returns:
             np.ndarray: means of the objective values after each rollout
@@ -396,7 +370,6 @@ class MdpExplore():
                 )
 
                 #print (f'episode:{i}, value :{objective}', self.objective.eval(self.emissions, aggregate_distribution,self.visitations, episodes))
-                self.objective_values_baseline.append(objective)
                 run_objective_values.append(objective)
 
             objective_values = run_objective_values

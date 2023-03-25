@@ -1,10 +1,8 @@
 import autograd.numpy as np
 
 from mdpexplore.env.discrete_env import DiscreteEnv
-from mdpexplore.env.linear_system import ContinuousEnv
 
 from mdpexplore.policies.simple_policy import SimplePolicy
-from mdpexplore.policies.linear_policy import LinearPolicy
 
 class PolicyGenerator():
     # TODO: add a constrained policy?
@@ -23,16 +21,3 @@ class PolicyGenerator():
         p /= np.sum(p, axis=1, keepdims=True)
 
         return SimplePolicy(self.env, p)
-
-class ContinuousPolicyGenerator():
-
-    def __init__(self, env: ContinuousEnv) -> None:
-        self.env = env
-
-    def uniform_policy(self):
-        '''
-        Returns a uniform policy within the environment
-        '''
-        d = self.env.state_dim
-        K = np.random.randn(d,d)
-        return LinearPolicy(self.env, K)

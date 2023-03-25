@@ -1,5 +1,4 @@
 import numpy as np
-import torch
 from mdpexplore.mdpexplore_con import ContinuousMdpExplore
 from mdpexplore.env.linear_system import LinearSystem
 from mdpexplore.env.linear_system import LinearPolicy

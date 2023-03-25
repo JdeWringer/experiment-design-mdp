@@ -1,0 +1,12 @@
+LICENSE
+README.md
+setup.py
+mdpexplore/__init__.py
+mdpexplore/mdpexplore.py
+mdpexplore/mdpexplore_con.py
+mdpexplore.egg-info/PKG-INFO
+mdpexplore.egg-info/SOURCES.txt
+mdpexplore.egg-info/dependency_links.txt
+mdpexplore.egg-info/not-zip-safe
+mdpexplore.egg-info/requires.txt
+mdpexplore.egg-info/top_level.txt

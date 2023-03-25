@@ -150,7 +150,7 @@ class DesignBayesD(RewardFunctional):
         aggregated_unrolls = sum(unrolls)/len(unrolls) if len(unrolls) > 0 else np.zeros(emissions.shape[0])
 
         new_z = np.multiply(emissions.T, distribution/(self.Sigma**2)) @ emissions
-        agg_z =  np.multiply(emissions.T, aggregated_unrolls/(self.Sigma**2)) @ emissions
+        agg_z = np.multiply(emissions.T, aggregated_unrolls/(self.Sigma**2)) @ emissions
 
         #new_z = emissions.T @ np.diag(distribution/(self.Sigma**2)) @ emissions
         #agg_z = emissions.T @ np.diag(aggregated_unrolls/(self.Sigma**2)) @ emissions
@@ -172,7 +172,7 @@ class DesignBayesD(RewardFunctional):
         ) -> float:
         alpha = len(unrolls)/episodes
 
-        z = self.eval_basic(emissions,distribution,unrolls,episodes)
+        z = self.eval_basic(emissions, distribution, unrolls, episodes)
 
         if not self.scale_reg:
             return np.linalg.slogdet(z + (1-alpha) * self.lambd)[1]

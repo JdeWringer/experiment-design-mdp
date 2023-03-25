@@ -36,13 +36,6 @@ class DiscreteEnv(Environment):
         '''
         ...
 
-    @abstractmethod
-    def convert(self, state):
-        '''
-        Takes the given action, updates current state and returns the emission
-        '''
-        ...
-
 
     @abstractmethod
     def get_transition_matrix(self) -> np.ndarray:
