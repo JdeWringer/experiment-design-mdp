@@ -75,12 +75,14 @@ class MdpExplore():
 
         self.densities = []
         if reset_visitations:
+            if hasattr(self.solver, 'estimator'):
+                self.solver.estimator.reset()
             self.visitations = []
 
     def _precompute_emissions(self) -> None:
         """Precomputes an emission matrix given the saved environment
         """
-        self.emissions = self.env.emissions
+        self.env.emissions = self.env.emissions
 
     def _density_oracle_single(self, policy: Policy) -> np.ndarray:
         """Computes state distribution induced by the given policy over a specified horizon
@@ -155,8 +157,7 @@ class MdpExplore():
         Returns:
             Policy: policy solving the saved environment with the given reward function
         """
-        solver = self.solver(self.env, reward)
-        return solver.solve()
+        return self.solver.solve(reward)
 
     def _reward_fn_gradient(self, distribution: np.ndarray) -> np.ndarray:
         """Computes the reward functional differentiated wrt to the state distribution
@@ -168,9 +169,9 @@ class MdpExplore():
             np.ndarray: gradient of the functional wrt to the state distribution - i.e. the reward function
         """
         if self.objective.get_type() == "adaptive":
-            grad_fn = grad(lambda d: self.objective.eval(self.emissions, d, self.visitations, self.episodes))
+            grad_fn = grad(lambda d: self.objective.eval(self.env.emissions, d, self.visitations, self.episodes))
         else:
-            grad_fn = grad(lambda d: self.objective.eval(self.emissions, d, self.episodes))
+            grad_fn = grad(lambda d: self.objective.eval(self.env.emissions, d, self.episodes))
         return grad_fn(distribution)
 
     def evaluate(
@@ -207,6 +208,7 @@ class MdpExplore():
                 next_state = self.env.step(action)
 
             self.visitations.append(self.env.visitations / self.env.visitations.sum())
+            self.solver.estimator.observations = np.concatenate((self.solver.estimator.observations, self.env.observations), axis=0)
 
     def _optimize_frank_wolfe(
             self,
@@ -249,13 +251,13 @@ class MdpExplore():
                 def fn(h):
                     if self.objective.get_type() == "adaptive":
                         return -self.objective.eval(
-                            self.emissions,
+                            self.env.emissions,
                             density * (1 - h) + h * new_density,
                             self.visitations,
                             self.episodes
                         )
                     return -self.objective.eval(
-                        self.emissions,
+                        self.env.emissions,
                         density * (1 - h) + h * new_density,
                         self.episodes
                     )
@@ -274,9 +276,9 @@ class MdpExplore():
                 step_size = 1.0 / (1 + counter)
 
             if self.objective.get_type() == "adaptive":
-                objective = self.objective.eval(self.emissions, density, self.visitations, self.episodes)
+                objective = self.objective.eval(self.env.emissions, density, self.visitations, self.episodes)
             else:
-                objective = self.objective.eval(self.emissions, density, self.episodes)
+                objective = self.objective.eval(self.env.emissions, density, self.episodes)
 
 
             if verbose:
@@ -348,7 +350,7 @@ class MdpExplore():
                 aggregate_distribution = (i * aggregate_distribution + self.visitations[i]) / (i + 1)
 
                 objective = self.objective.eval_full(
-                    self.emissions, aggregate_distribution, episodes
+                    self.env.emissions, aggregate_distribution, episodes
                 )
                 
 
@@ -371,13 +373,13 @@ class MdpExplore():
             for i, d in enumerate(self.visitations):
                 aggregate_distribution = (i * aggregate_distribution + d) / (i + 1)
                 run_objective_values.append(
-                    self.objective.eval_full(self.emissions, aggregate_distribution, self.episodes))
+                    self.objective.eval_full(self.env.emissions, aggregate_distribution, self.episodes))
 
             objective_values = run_objective_values
             objective_values = np.array(objective_values)
 
         if self.objective.get_type() != "adaptive":
-            opt = self.objective.eval_full(self.emissions, self._density_oracle(), self.episodes)
+            opt = self.objective.eval_full(self.env.emissions, self._density_oracle(), self.episodes)
         else:
             opt = None
 

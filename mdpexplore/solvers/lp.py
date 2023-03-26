@@ -8,11 +8,12 @@ from mdpexplore.policies.simple_policy import SimplePolicy
 
 
 class LP(DiscreteSolver):
-    def solve(self) -> Policy:
+    def solve(self, reward, transition_matrix=None) -> Policy:
         '''
         Solves the MDP and returns the value function.
         '''
-        transition_matrix = self.env.get_transition_matrix()
+        if transition_matrix is None:
+            transition_matrix = self.env.get_transition_matrix()
 
         v = cp.Variable(self.env.states_num)  # number of states
         objective = cp.Minimize(cp.sum(v))
@@ -23,7 +24,7 @@ class LP(DiscreteSolver):
         # 	if self.env.is_valid_action(a, s):
         # 		constraints.append(v[s] >= self.reward[s] + self.env.discount_factor * transition_matrix[s, a] @ v)
         for a in range(self.env.actions_num):
-            constraints += [v >= self.reward[:, a] + self.env.discount_factor * transition_matrix[:, a] @ v]
+            constraints += [v >= reward[:, a] + self.env.discount_factor * transition_matrix[:, a] @ v]
         problem = cp.Problem(objective, constraints)
         result = problem.solve()
 
@@ -44,7 +45,7 @@ class LP(DiscreteSolver):
 
         p = np.zeros((self.env.states_num, self.env.actions_num))
         for s in range(self.env.states_num):
-            q_function = self.reward[s] + self.env.discount_factor * np.dot(transition_matrix[s, :], v.value)
+            q_function = reward[s] + self.env.discount_factor * np.dot(transition_matrix[s, :], v.value)
             for a in range(self.env.actions_num):
                 if not self.env.is_valid_action(a, s):
                     q_function[a] = -1e10

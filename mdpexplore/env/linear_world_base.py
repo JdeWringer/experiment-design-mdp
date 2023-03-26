@@ -79,7 +79,9 @@ class LinearWorldBase(DiscreteEnv, ABC):
 
         """
         self.visitations[self.state, action] += 1
-        self.state = self.next(self.state, action)
+        current_state = self.state
+        self.state = self.next(current_state, action)
+        self.observations.append([current_state, action, self.state])
         return self.state
 
     def get_transition_matrix(self) -> np.ndarray:
@@ -104,4 +106,5 @@ class LinearWorldBase(DiscreteEnv, ABC):
     def reset(self) -> None:
         """Resets the environment to its initial state"""
         self.visitations = np.zeros((self.states_num, self.actions_num))
+        self.observations = []
         self.state = np.random.choice(range(len(self.d0)), p=self.d0)

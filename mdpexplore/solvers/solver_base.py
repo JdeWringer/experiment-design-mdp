@@ -10,12 +10,10 @@ class DiscreteSolver(ABC):
     def __init__(
         self,
         env: DiscreteEnv,
-        reward: np.ndarray,
     ) -> None:
 
         self.env = env
-        self.reward = reward
 
     @abstractmethod
-    def solve(self) -> Policy:
+    def solve(self, reward) -> Policy:
         ...

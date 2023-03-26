@@ -16,19 +16,19 @@ class DP(DiscreteSolver):
         actions = np.zeros((self.env.max_episode_length + 1, self.env.states_num), dtype=int)
         values = np.zeros((self.env.max_episode_length + 1, self.env.states_num))
 
-        actions[self.env.max_episode_length, :] = 0 # pointing to the 'wait' action
-        if self.env.constrained:
-            values[self.env.max_episode_length, :] = -1e10
-            values[self.env.max_episode_length, self.env.terminal_state] = \
-                self.reward[self.env.terminal_state]
-        else:
-            values[self.env.max_episode_length, :] = self.reward
+        # actions[self.env.max_episode_length, :] = 0 # pointing to the 'wait' action
+        # if self.env.constrained:
+        #     values[self.env.max_episode_length, :] = -1e10
+        #     values[self.env.max_episode_length, self.env.terminal_state] = \
+        #         self.reward[self.env.terminal_state]
+        # else:
+        #     values[self.env.max_episode_length, :] = self.reward
 
         for i in range(self.env.max_episode_length - 1, -1, -1):
             for state in range(self.env.states_num):
                 acts = self.env.available_actions(state)
                 new_values = np.array(
-                    [self.reward[state] + transition_matrix[state, a] @ values[i+1] for a in acts]
+                    [self.reward[state, a] + transition_matrix[state, a] @ values[i+1] for a in acts]
                 )
                 optimal_actions = np.argwhere(new_values == np.max(new_values))
                 idx = np.random.choice( 
