@@ -1,6 +1,7 @@
 import numpy as np
 from mdpexplore.env.linear_worlds import MachineRepairSimplex
 from mdpexplore.solvers.lp import LP
+from mdpexplore.solvers.dp import DP
 from mdpexplore.policies.average_policy import AveragePolicy
 from mdpexplore.utils.reward_functionals import DesignBayesD
 from mdpexplore.mdpexplore import MdpExplore
@@ -26,6 +27,7 @@ if __name__ == "__main__":
     parser.add_argument('--linesearch', default=None, type=str, help="type")
     parser.add_argument('--savetrajectory', default=None, type=str, help="type")
     parser.add_argument('--random', default="false", type=str, help="type")
+    parser.add_argument('--solver', default="LP", type=str, help="type")
 
     args = parser.parse_args()
 
@@ -43,11 +45,18 @@ if __name__ == "__main__":
     if args.random == "true":
         initial_policy = True
         args.num_components = 1
+        
+    if args.solver == 'LP':
+        solver = LP
+    elif args.solver == 'DP':
+        solver = DP
+    else:
+        raise ValueError('Invalid solver type')
 
     me = MdpExplore(
         env,
         objective=design,
-        solver=LP,
+        solver=solver,
         step=args.linesearch,
         method='frank-wolfe',
         verbosity=args.verbosity,

@@ -35,6 +35,8 @@ class MachineRepairSimplex(LinearWorldBase):
             d0=d0,
             seed=seed,
         )
+        self.constrained = False
+        self.discount_factor = 0.99
 
     @staticmethod
     def pigeonhole(n, m):
@@ -119,3 +121,6 @@ class MachineRepairSimplex(LinearWorldBase):
     
     def get_states_num(self):
         return self.states_num
+    
+    def get_actions_num(self):
+        return self.actions_num

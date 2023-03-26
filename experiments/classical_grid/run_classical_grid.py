@@ -22,7 +22,7 @@ if __name__ == "__main__":
     parser.add_argument('--accuracy', default=None, type=float, help='Termination criterion for optimality gap')
     parser.add_argument('--policy', default='density', type=str,
                         help='Summarized policy type (mixed/average/density)')
-    parser.add_argument('--num_components', default=10, type=int,
+    parser.add_argument('--num_components', default=7, type=int,
                         help='Number of MaxEnt components (basic policies)')
     parser.add_argument('--episodes', default=4, type=int, help='Number of evaluation policy unrolls')
     parser.add_argument('--repeats', default=1, type=int, help='Number of repeats')

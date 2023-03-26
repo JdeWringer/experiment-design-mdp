@@ -129,7 +129,7 @@ class DesignBayesD(RewardFunctional):
         self.lambd = lambd * np.eye(self.dim)
 
         if isinstance(lambd, float):
-            self.Sigma = sigma * np.ones(self.env.get_states_num())
+            self.Sigma = sigma * np.ones(self.env.get_states_num() * self.env.get_actions_num())
             self.Sigma_true = self.Sigma
         else:
             self.Sigma = sigma
@@ -146,8 +146,12 @@ class DesignBayesD(RewardFunctional):
         """
 
         """
+        distribution = distribution.flatten()
+        emissions = np.reshape(emissions, (-1, emissions.shape[2]))
+    
         alpha = len(unrolls)/episodes
         aggregated_unrolls = sum(unrolls)/len(unrolls) if len(unrolls) > 0 else np.zeros(emissions.shape[0])
+        aggregated_unrolls = aggregated_unrolls.flatten()
 
         new_z = np.multiply(emissions.T, distribution/(self.Sigma**2)) @ emissions
         agg_z = np.multiply(emissions.T, aggregated_unrolls/(self.Sigma**2)) @ emissions
@@ -184,7 +188,9 @@ class DesignBayesD(RewardFunctional):
         distribution: np.ndarray,
         episodes: int,
         ) -> float:
-
+        distribution = distribution.flatten()
+        emissions = np.reshape(emissions, (-1, emissions.shape[2]))
+    
         z = emissions.T @ np.diag(distribution/(self.Sigma_true**2)) @ emissions
 
         if not self.scale_reg:

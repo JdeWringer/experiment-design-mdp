@@ -74,18 +74,13 @@ class MdpExplore():
             self.weights = []
 
         self.densities = []
-        self.trajectory = []
         if reset_visitations:
             self.visitations = []
 
     def _precompute_emissions(self) -> None:
         """Precomputes an emission matrix given the saved environment
         """
-        emissions = []
-        for i in range(self.env.states_num):
-            emissions.append(self.env.emissions[i])
-        emissions = np.array(emissions)
-        self.emissions = emissions
+        self.emissions = self.env.emissions
 
     def _density_oracle_single(self, policy: Policy) -> np.ndarray:
         """Computes state distribution induced by the given policy over a specified horizon
@@ -96,8 +91,7 @@ class MdpExplore():
         Returns:
             np.ndarray: 1-D array with density for each state
         """
-        d0 = np.zeros(self.env.states_num)
-        d0[self.env.init_state] = 1
+        d0 = self.env.d0
 
         d = np.array(d0)
         temp = np.array(d0)
@@ -179,10 +173,6 @@ class MdpExplore():
             grad_fn = grad(lambda d: self.objective.eval(self.emissions, d, self.episodes))
         return grad_fn(distribution)
 
-    def _update_data(self):
-        if self.callback is not None:
-            self.callback(self.trajectory, self.objective)
-
     def evaluate(
             self,
             SummarizedPolicyType: Type[SummarizedPolicy] = MixturePolicy,
@@ -212,13 +202,10 @@ class MdpExplore():
                     self.env, self.policies, self.weights
                 )
 
-            self.trajectory.append(self.env.init_state)
             for _ in range(self.env.max_episode_length):
                 action = summarized_policy.next_action(self.env.state)
                 next_state = self.env.step(action)
-                self.trajectory.append(next_state)
 
-            self._update_data()
             self.visitations.append(self.env.visitations / self.env.visitations.sum())
 
     def _optimize_frank_wolfe(
@@ -246,7 +233,7 @@ class MdpExplore():
 
         while counter < num_components and empirical_gap > gap:
 
-            density = self._density_oracle()
+            density = self._density_oracle(actions=True)
 
             reward = self._reward_fn_gradient(density)
 
@@ -292,10 +279,8 @@ class MdpExplore():
                 objective = self.objective.eval(self.emissions, density, self.episodes)
 
 
-            empirical_gap = np.minimum(reward @ (new_density - density), empirical_gap)
-
             if verbose:
-                print(f'component: {counter}, gap: {empirical_gap}, objective: {objective}, stepsize: {step_size}, gradient:{la.norm(reward)}')
+                print(f'component: {counter}, objective: {objective}, stepsize: {step_size}, gradient:{la.norm(reward)}')
             self.weights = [(1 - step_size) * weight for weight in self.weights] + [step_size]
 
             counter += 1
@@ -357,19 +342,17 @@ class MdpExplore():
                 self._reset(reset_visitations=False)
 
                 self.optimize(num_components, self.method, accuracy)
-
+                
                 self.evaluate(SummarizedPolicyType, 1)
-                aggregate_distribution = (i * aggregate_distribution + self.visitations[i]) / (i + 1)
 
-                if save_trajectory is not None:
-                    np.savetxt(f"{save_trajectory}{i}.txt",
-                               np.array([self.env.convert(state) for state in self.trajectory]))
+                aggregate_distribution = (i * aggregate_distribution + self.visitations[i]) / (i + 1)
 
                 objective = self.objective.eval_full(
                     self.emissions, aggregate_distribution, episodes
                 )
+                
 
-                #print (f'episode:{i}, value :{objective}', self.objective.eval(self.emissions, aggregate_distribution,self.visitations, episodes))
+                print(f'episode:{i}, value: {objective}')
                 run_objective_values.append(objective)
 
             objective_values = run_objective_values

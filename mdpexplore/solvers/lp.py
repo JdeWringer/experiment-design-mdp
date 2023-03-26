@@ -18,15 +18,12 @@ class LP(DiscreteSolver):
         objective = cp.Minimize(cp.sum(v))
 
         constraints = []
-        for s in range(self.env.states_num):
-            if self.env.terminal_state == s:
-                constraints.append(v[s] >= self.reward[s])
-                break
+
         # for a in range(self.env.actions_num):
         # 	if self.env.is_valid_action(a, s):
         # 		constraints.append(v[s] >= self.reward[s] + self.env.discount_factor * transition_matrix[s, a] @ v)
         for a in range(self.env.actions_num):
-            constraints += [v >= self.reward + self.env.discount_factor * transition_matrix[:, a] @ v]
+            constraints += [v >= self.reward[:, a] + self.env.discount_factor * transition_matrix[:, a] @ v]
         problem = cp.Problem(objective, constraints)
         result = problem.solve()
 

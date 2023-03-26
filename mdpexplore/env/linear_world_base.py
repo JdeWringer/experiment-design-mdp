@@ -32,10 +32,10 @@ class LinearWorldBase(DiscreteEnv, ABC):
 
         self.max_episode_length = max_episode_length
 
-        self.feature_vectors = self.generate_feature_vectors()
+        self.emissions = self.generate_feature_vectors()
         self.mu = self.generate_mu()
 
-        assert np.isclose(np.sum(self.feature_vectors, axis=2), 1).all()
+        assert np.isclose(np.sum(self.emissions, axis=2), 1).all()
         assert np.isclose(np.sum(self.mu, axis=0), 1).all()
 
         self.transition_matrix = None
@@ -66,7 +66,7 @@ class LinearWorldBase(DiscreteEnv, ABC):
         Returns:
             int: state ID after taking the given action from the given state
         """
-        P = self.transition_matrix
+        P = self.get_transition_matrix()
         next_state = self.rng.choice(len(P), p=P[state, action, :] / P[state, action, :].sum())
 
         return next_state
@@ -78,8 +78,8 @@ class LinearWorldBase(DiscreteEnv, ABC):
             action (int): ID of action to be taken
 
         """
+        self.visitations[self.state, action] += 1
         self.state = self.next(self.state, action)
-        self.visitations[self.state] += 1
         return self.state
 
     def get_transition_matrix(self) -> np.ndarray:
@@ -91,7 +91,7 @@ class LinearWorldBase(DiscreteEnv, ABC):
         if self.transition_matrix is not None:
             return self.transition_matrix
 
-        P = np.tensordot(self.feature_vectors, self.mu.T, axes=1)
+        P = np.tensordot(self.emissions, self.mu.T, axes=1)
 
         # Check normalization of transition matrix.
         assert np.isclose(np.sum(P, axis=2), 1).all()
@@ -103,6 +103,5 @@ class LinearWorldBase(DiscreteEnv, ABC):
 
     def reset(self) -> None:
         """Resets the environment to its initial state"""
-        self.visitations = np.zeros(self.states_num)
+        self.visitations = np.zeros((self.states_num, self.actions_num))
         self.state = np.random.choice(range(len(self.d0)), p=self.d0)
-        self.visitations[self.state] = 1
