@@ -3,7 +3,7 @@ from mdpexplore.policies.policy_base import Policy
 from mdpexplore.solvers.lp import LP
 
 
-class Nominal(DiscreteSolver):
+class Optimistic(DiscreteSolver):
     def __init__(self, env, estimator):
         super().__init__(env)
         self.estimator = estimator

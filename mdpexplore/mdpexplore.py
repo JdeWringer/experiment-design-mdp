@@ -15,27 +15,27 @@ from mdpexplore.policies.policy_generator import PolicyGenerator
 from mdpexplore.utils.reward_functionals import *
 
 
-class MdpExplore():
+class MdpExplore:
     def __init__(
-            self,
-            env: DiscreteEnv,
-            objective: RewardFunctional,
-            solver: Type[DiscreteSolver],
-            step: Union[float, str] = None,
-            method: str = 'frank-wolfe',
-            verbosity: int = 0,
-            optimize_repetitions: bool = False,
-            initial_policy: bool = False,
-            callback: Union[Callable, None] = None
+        self,
+        env: DiscreteEnv,
+        objective,
+        solver: Type[DiscreteSolver],
+        step: Union[float, str] = None,
+        method: str = "frank-wolfe",
+        verbosity: int = 0,
+        optimize_repetitions: bool = False,
+        initial_policy: bool = False,
+        callback: Union[Callable, None] = None,
     ) -> None:
-
         """Class containing components required to run the maximum entropy exploration algorithm
 
         Args:
             env (DiscreteEnv): environment to be solved with max-ent
             objective (Callable[..., float]): reward functional to generate the reward functions
             solver (Type[DiscreteSolver]): MDP solver to be used as planning oracle
-            step (Union[float, str], optional): step size to be used in optimization - float, 'line-search' or None (emulating greedy). Defaults to None.
+            step (Union[float, str], optional): step size to be used in optimization - float,
+                'line-search' or None (emulating greedy). Defaults to None.
             method (str, optional): optimization method. Defaults to 'frank-wolfe'.
             verbosity (int, optional): level of information logging. Defaults to 0.
         """
@@ -63,8 +63,7 @@ class MdpExplore():
         self._precompute_emissions()
 
     def _reset(self, reset_visitations=True) -> None:
-        """Resets the max-ent solver to its initial state
-        """
+        """Resets the max-ent solver to its initial state"""
         self.env.reset()
         if self.initial_policy:
             self.policies = [self.policy_generator.uniform_policy()]
@@ -75,13 +74,12 @@ class MdpExplore():
 
         self.densities = []
         if reset_visitations:
-            if hasattr(self.solver, 'estimator'):
+            if self.solver.estimator is not None:
                 self.solver.estimator.reset()
             self.visitations = []
 
     def _precompute_emissions(self) -> None:
-        """Precomputes an emission matrix given the saved environment
-        """
+        """Precomputes an emission matrix given the saved environment"""
         self.env.emissions = self.env.emissions
 
     def _density_oracle_single(self, policy: Policy) -> np.ndarray:
@@ -98,20 +96,18 @@ class MdpExplore():
         d = np.array(d0)
         temp = np.array(d0)
 
-        if type(policy) is SimplePolicy:
-            p_pi = (self.env.get_transition_matrix() *
-                    np.expand_dims(policy.p, axis=2)).sum(axis=1)
-            assert (np.allclose(p_pi.sum(axis=1), 1, rtol=1e-05, atol=1e-05))
+        if isinstance(policy, SimplePolicy):
+            p_pi = (self.env.get_transition_matrix() * np.expand_dims(policy.p, axis=2)).sum(axis=1)
+            assert np.allclose(p_pi.sum(axis=1), 1, rtol=1e-05, atol=1e-05)
 
             for _ in range(self.env.max_episode_length):
                 temp = p_pi.T @ temp
                 d += temp
 
-        elif type(policy) is NonStationaryPolicy:
+        elif isinstance(policy, NonStationaryPolicy):
             for i in range(self.env.max_episode_length):
-                p_pi = (self.env.get_transition_matrix() *
-                        np.expand_dims(policy.ps[i], axis=2)).sum(axis=1)
-                assert (np.allclose(p_pi.sum(axis=1), 1, rtol=1e-05, atol=1e-05))
+                p_pi = (self.env.get_transition_matrix() * np.expand_dims(policy.ps[i], axis=2)).sum(axis=1)
+                assert np.allclose(p_pi.sum(axis=1), 1, rtol=1e-05, atol=1e-05)
                 temp = p_pi.T @ temp
                 d += temp
 
@@ -142,8 +138,8 @@ class MdpExplore():
                 # TODO: doesn't work with non-stationary
                 try:
                     total_density += self.weights[i] * policy.p * np.expand_dims(self.densities[i], axis=1)
-                except:
-                    raise TypeError('Non-stationary policies are not supported for state-action distribution')
+                except BaseException:
+                    raise TypeError("Non-stationary policies are not supported for state-action distribution")
             else:
                 total_density += self.weights[i] * self.densities[i]
         return total_density
@@ -175,9 +171,9 @@ class MdpExplore():
         return grad_fn(distribution)
 
     def evaluate(
-            self,
-            SummarizedPolicyType: Type[SummarizedPolicy] = MixturePolicy,
-            episodes: int = 100,
+        self,
+        SummarizedPolicyType: Type[SummarizedPolicy] = MixturePolicy,
+        episodes: int = 100,
     ) -> None:
         """Evaluates the saved policies using chosen summarization method
 
@@ -194,27 +190,26 @@ class MdpExplore():
                     self.env, self._density_oracle(), self._density_oracle(actions=True)
                 )
             elif SummarizedPolicyType == TrackingPolicy:
-                summarized_policy = SummarizedPolicyType(
-                    self.env, self.policies, self.weights, empirical
-                )
+                summarized_policy = SummarizedPolicyType(self.env, self.policies, self.weights, empirical)
                 empirical[summarized_policy.get_picked_policy_id()] += 1
             else:
-                summarized_policy = SummarizedPolicyType(
-                    self.env, self.policies, self.weights
-                )
+                summarized_policy = SummarizedPolicyType(self.env, self.policies, self.weights)
 
             for _ in range(self.env.max_episode_length):
                 action = summarized_policy.next_action(self.env.state)
                 next_state = self.env.step(action)
 
             self.visitations.append(self.env.visitations / self.env.visitations.sum())
-            self.solver.estimator.observations = np.concatenate((self.solver.estimator.observations, self.env.observations), axis=0)
+            if self.solver.estimator is not None:
+                self.solver.estimator.observations = np.concatenate(
+                    (self.solver.estimator.observations, self.env.observations), axis=0
+                )
 
     def _optimize_frank_wolfe(
-            self,
-            num_components: int,
-            gap=None,
-            verbose=False,
+        self,
+        num_components: int,
+        gap=None,
+        verbose=False,
     ) -> None:
         """Performs Frank-Wolfe algorithm to maximize the objective function
 
@@ -234,7 +229,6 @@ class MdpExplore():
         empirical_gap = 1e10
 
         while counter < num_components and empirical_gap > gap:
-
             density = self._density_oracle(actions=True)
 
             reward = self._reward_fn_gradient(density)
@@ -251,21 +245,11 @@ class MdpExplore():
                 def fn(h):
                     if self.objective.get_type() == "adaptive":
                         return -self.objective.eval(
-                            self.env.emissions,
-                            density * (1 - h) + h * new_density,
-                            self.visitations,
-                            self.episodes
+                            self.env.emissions, density * (1 - h) + h * new_density, self.visitations, self.episodes
                         )
-                    return -self.objective.eval(
-                        self.env.emissions,
-                        density * (1 - h) + h * new_density,
-                        self.episodes
-                    )
+                    return -self.objective.eval(self.env.emissions, density * (1 - h) + h * new_density, self.episodes)
 
-                res = minimize_scalar(
-                    fn,
-                    bounds=(1e-5, 1. - 1e-5),
-                    method='bounded')
+                res = minimize_scalar(fn, bounds=(1e-5, 1.0 - 1e-5), method="bounded")
                 step_size = res.x
 
             elif self.step is not None and isinstance(self.step, float):
@@ -280,18 +264,19 @@ class MdpExplore():
             else:
                 objective = self.objective.eval(self.env.emissions, density, self.episodes)
 
-
             if verbose:
-                print(f'component: {counter}, objective: {objective}, stepsize: {step_size}, gradient:{la.norm(reward)}')
+                print(
+                    f"component: {counter}, objective: {objective}, stepsize: {step_size}, gradient:{la.norm(reward)}"
+                )
             self.weights = [(1 - step_size) * weight for weight in self.weights] + [step_size]
 
             counter += 1
 
     def optimize(
-            self,
-            num_components: int,
-            method: str,
-            accuracy: float = None,
+        self,
+        num_components: int,
+        method: str,
+        accuracy: float = None,
     ) -> None:
         """Optimizes the objective function using the specified method
 
@@ -300,7 +285,7 @@ class MdpExplore():
             method (str): method to be used for optimization (only frank-wolfe available)
             accuracy (float, optional): optimality gap to be reached. Defaults to None.
         """
-        if method == 'frank-wolfe':
+        if method == "frank-wolfe":
             self._optimize_frank_wolfe(
                 num_components=num_components,
                 gap=accuracy,
@@ -310,12 +295,12 @@ class MdpExplore():
             pass  # can't happen, handled by argparser
 
     def run(
-            self,
-            num_components: int,
-            episodes: int = 100,
-            accuracy: float = None,
-            SummarizedPolicyType: Type[SummarizedPolicy] = MixturePolicy,
-            save_trajectory: Union[str, None] = None
+        self,
+        num_components: int,
+        episodes: int = 100,
+        accuracy: float = None,
+        SummarizedPolicyType: Type[SummarizedPolicy] = MixturePolicy,
+        save_trajectory: Union[str, None] = None,
     ) -> Union[Tuple[np.ndarray, np.ndarray, float], None]:
         """Runs the full max-ent procedure
 
@@ -344,17 +329,14 @@ class MdpExplore():
                 self._reset(reset_visitations=False)
 
                 self.optimize(num_components, self.method, accuracy)
-                
+
                 self.evaluate(SummarizedPolicyType, 1)
 
                 aggregate_distribution = (i * aggregate_distribution + self.visitations[i]) / (i + 1)
 
-                objective = self.objective.eval_full(
-                    self.env.emissions, aggregate_distribution, episodes
-                )
-                
+                objective = self.objective.eval_full(self.env.emissions, aggregate_distribution, episodes)
 
-                print(f'episode:{i}, value: {objective}')
+                print(f"episode:{i}, value: {objective}")
                 run_objective_values.append(objective)
 
             objective_values = run_objective_values
@@ -373,7 +355,8 @@ class MdpExplore():
             for i, d in enumerate(self.visitations):
                 aggregate_distribution = (i * aggregate_distribution + d) / (i + 1)
                 run_objective_values.append(
-                    self.objective.eval_full(self.env.emissions, aggregate_distribution, self.episodes))
+                    self.objective.eval_full(self.env.emissions, aggregate_distribution, self.episodes)
+                )
 
             objective_values = run_objective_values
             objective_values = np.array(objective_values)

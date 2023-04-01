@@ -7,37 +7,36 @@ from mdpexplore.utils.reward_functionals import DesignBayesD
 from mdpexplore.mdpexplore import MdpExplore
 from mdpexplore.estimators.wls import WLS
 from mdpexplore.solvers.nominal import Nominal
+from mdpexplore.solvers.optimistic import Optimistic
 import argparse
 
 if __name__ == "__main__":
-
-    parser = argparse.ArgumentParser(description='Gridworlds Problem.')
-    parser.add_argument('--seed', default=12, type=int,
-                        help='Use this to set the seed for the random number generator')
-    parser.add_argument('--save', default="experiments/machine_repair/experiment.csv", type=str, help='name of the file')
-    parser.add_argument('--cores', default=None, type=int, help='number of cores')
-    parser.add_argument('--verbosity', default=2, type=int, help='Use this to increase debug ouput')
-    parser.add_argument('--accuracy', default=None, type=float, help='Termination criterion for optimality gap')
-    parser.add_argument('--policy', default='average', type=str,
-                        help='Summarized policy type (mixed/average/density)')
-    parser.add_argument('--num_components', default=1, type=int,
-                        help='Number of MaxEnt components (basic policies)')
-    parser.add_argument('--episodes', default=100, type=int, help='Number of evaluation policy unrolls')
-    parser.add_argument('--repeats', default=1, type=int, help='Number of repeats')
-    parser.add_argument('--adaptive', default="Bayes", type=str, help='Number of repeats')
-    parser.add_argument('--opt', default="false", type=str, help='Number of repeats')
-    parser.add_argument('--linesearch', default=None, type=str, help="type")
-    parser.add_argument('--savetrajectory', default=None, type=str, help="type")
-    parser.add_argument('--random', default="false", type=str, help="type")
-    parser.add_argument('--solver', default="LP", type=str, help="type")
-    parser.add_argument('--estimator', default="WLS", type=str, help="type")
+    parser = argparse.ArgumentParser(description="Gridworlds Problem.")
+    parser.add_argument("--seed", default=12, type=int, help="Use this to set the seed for the random number generator")
+    parser.add_argument(
+        "--save", default="experiments/machine_repair/experiment.csv", type=str, help="name of the file"
+    )
+    parser.add_argument("--cores", default=None, type=int, help="number of cores")
+    parser.add_argument("--verbosity", default=2, type=int, help="Use this to increase debug ouput")
+    parser.add_argument("--accuracy", default=None, type=float, help="Termination criterion for optimality gap")
+    parser.add_argument("--policy", default="average", type=str, help="Summarized policy type (mixed/average/density)")
+    parser.add_argument("--num_components", default=1, type=int, help="Number of MaxEnt components (basic policies)")
+    parser.add_argument("--episodes", default=100, type=int, help="Number of evaluation policy unrolls")
+    parser.add_argument("--repeats", default=1, type=int, help="Number of repeats")
+    parser.add_argument("--adaptive", default="Bayes", type=str, help="Number of repeats")
+    parser.add_argument("--opt", default="false", type=str, help="Number of repeats")
+    parser.add_argument("--linesearch", default=None, type=str, help="type")
+    parser.add_argument("--savetrajectory", default=None, type=str, help="type")
+    parser.add_argument("--random", default="false", type=str, help="type")
+    parser.add_argument("--solver", default="optimistic", type=str, help="type")
+    parser.add_argument("--estimator", default="WLS", type=str, help="type")
 
     args = parser.parse_args()
 
-    if args.policy == 'average':
+    if args.policy == "average":
         args.policy = AveragePolicy
     else:
-        raise ValueError('Invalid policy type')
+        raise ValueError("Invalid policy type")
 
     env = MachineRepairSimplex(max_episode_length=30, seed=args.seed)
 
@@ -49,29 +48,30 @@ if __name__ == "__main__":
         initial_policy = True
         args.num_components = 1
 
-    if args.estimator == 'WLS':
+    if args.estimator == "WLS":
         estimator = WLS(env)
     else:
-        raise ValueError('Invalid estimator type')
+        raise ValueError("Invalid estimator type")
 
-    if args.solver == 'LP':
+    if args.solver == "LP":
         solver = LP(env)
-    elif args.solver == 'DP':
+    elif args.solver == "DP":
         solver = DP
-    elif args.solver == 'nominal':
+    elif args.solver == "nominal":
         solver = Nominal(env, estimator)
+    elif args.solver == "optimistic":
+        solver = Optimistic(env, estimator)
     else:
-        raise ValueError('Invalid solver type')
-
+        raise ValueError("Invalid solver type")
 
     me = MdpExplore(
         env,
         objective=design,
         solver=solver,
         step=args.linesearch,
-        method='frank-wolfe',
+        method="frank-wolfe",
         verbosity=args.verbosity,
-        initial_policy=initial_policy
+        initial_policy=initial_policy,
     )
 
     val, opt_val = me.run(
@@ -79,7 +79,7 @@ if __name__ == "__main__":
         episodes=args.episodes,
         SummarizedPolicyType=args.policy,
         accuracy=args.accuracy,
-        save_trajectory=args.savetrajectory
+        save_trajectory=args.savetrajectory,
     )
     vals = np.array(val)
     np.savetxt(args.save, vals)

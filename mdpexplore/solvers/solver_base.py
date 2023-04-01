@@ -13,6 +13,7 @@ class DiscreteSolver(ABC):
     ) -> None:
 
         self.env = env
+        self.estimator = None
 
     @abstractmethod
     def solve(self, reward) -> Policy:
