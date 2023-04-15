@@ -3,7 +3,7 @@ from mdpexplore.env.linear_worlds import MachineRepairSimplex
 from mdpexplore.solvers.lp import LP
 from mdpexplore.solvers.dp import DP
 from mdpexplore.policies.average_policy import AveragePolicy
-from mdpexplore.utils.reward_functionals import DesignBayesD
+from mdpexplore.utils.reward_functionals import DesignBayesD, DesignD
 from mdpexplore.mdpexplore import MdpExplore
 from mdpexplore.estimators.wls import WLS
 from mdpexplore.solvers.nominal import Nominal
@@ -21,9 +21,9 @@ if __name__ == "__main__":
     parser.add_argument("--accuracy", default=None, type=float, help="Termination criterion for optimality gap")
     parser.add_argument("--policy", default="average", type=str, help="Summarized policy type (mixed/average/density)")
     parser.add_argument("--num_components", default=1, type=int, help="Number of MaxEnt components (basic policies)")
-    parser.add_argument("--episodes", default=100, type=int, help="Number of evaluation policy unrolls")
+    parser.add_argument("--episodes", default=50, type=int, help="Number of evaluation policy unrolls")
     parser.add_argument("--repeats", default=1, type=int, help="Number of repeats")
-    parser.add_argument("--adaptive", default="Bayes", type=str, help="Number of repeats")
+    parser.add_argument("--design", default="adaptive", type=str, help="Number of repeats")
     parser.add_argument("--opt", default="false", type=str, help="Number of repeats")
     parser.add_argument("--linesearch", default=None, type=str, help="type")
     parser.add_argument("--savetrajectory", default=None, type=str, help="type")
@@ -40,7 +40,12 @@ if __name__ == "__main__":
 
     env = MachineRepairSimplex(max_episode_length=30, seed=args.seed)
 
-    design = DesignBayesD(env, scale_reg=False, uniform_alpha=False, lambd=1e-1)
+    if args.design == "adaptive":
+        design = DesignBayesD(env, scale_reg=False, uniform_alpha=False, lambd=1e-1)
+    elif args.design == "fixed":
+        design = DesignD(env, lambd=1e-1)
+    else:
+        raise ValueError("Invalid design type")
 
     initial_policy = False
 
@@ -50,13 +55,15 @@ if __name__ == "__main__":
 
     if args.estimator == "WLS":
         estimator = WLS(env)
+    elif args.estimator == "None":
+        estimator = None
     else:
         raise ValueError("Invalid estimator type")
 
     if args.solver == "LP":
         solver = LP(env)
     elif args.solver == "DP":
-        solver = DP
+        solver = DP(env)
     elif args.solver == "nominal":
         solver = Nominal(env, estimator)
     elif args.solver == "optimistic":

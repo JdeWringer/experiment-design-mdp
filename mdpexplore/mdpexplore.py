@@ -362,7 +362,7 @@ class MdpExplore:
             objective_values = np.array(objective_values)
 
         if self.objective.get_type() != "adaptive":
-            opt = self.objective.eval_full(self.env.emissions, self._density_oracle(), self.episodes)
+            opt = self.objective.eval_full(self.env.emissions, self._density_oracle(actions=True), self.episodes)
         else:
             opt = None
 

@@ -7,12 +7,13 @@ from mdpexplore.policies.simple_policy import SimplePolicy
 
 
 class DP(DiscreteSolver):
-    def solve(self) -> Policy:
-        '''
+    def solve(self, reward, transition_matrix=None) -> Policy:
+        """
         Solves the MDP and returns the value function.
-        '''
-        transition_matrix = self.env.get_transition_matrix()
-        
+        """
+        if transition_matrix is None:
+            transition_matrix = self.env.get_transition_matrix()
+
         actions = np.zeros((self.env.max_episode_length + 1, self.env.states_num), dtype=int)
         values = np.zeros((self.env.max_episode_length + 1, self.env.states_num))
 
@@ -27,13 +28,9 @@ class DP(DiscreteSolver):
         for i in range(self.env.max_episode_length - 1, -1, -1):
             for state in range(self.env.states_num):
                 acts = self.env.available_actions(state)
-                new_values = np.array(
-                    [self.reward[state, a] + transition_matrix[state, a] @ values[i+1] for a in acts]
-                )
+                new_values = np.array([reward[state, a] + transition_matrix[state, a] @ values[i + 1] for a in acts])
                 optimal_actions = np.argwhere(new_values == np.max(new_values))
-                idx = np.random.choice( 
-                    optimal_actions.flatten()
-                )
+                idx = np.random.choice(optimal_actions.flatten())
                 best_act = acts[idx]
                 actions[i, state] = best_act
                 values[i, state] = new_values[idx]
@@ -41,12 +38,12 @@ class DP(DiscreteSolver):
         if not self.env.constrained:
             p = np.zeros((self.env.states_num, self.env.actions_num))
             for s in range(self.env.states_num):
-                p[s, actions[i, s]] = 1.
+                p[s, actions[i, s]] = 1.0
             return SimplePolicy(self.env, p)
 
         ps = np.zeros((self.env.max_episode_length, self.env.states_num, self.env.actions_num))
         for i in range(self.env.max_episode_length):
             for s in range(self.env.states_num):
-                ps[i, s, actions[i, s]] = 1.
+                ps[i, s, actions[i, s]] = 1.0
 
         return NonStationaryPolicy(self.env, ps)

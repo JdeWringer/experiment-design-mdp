@@ -18,6 +18,23 @@ class WLS(Estimator):
         penalty = cp.norm(mu, "fro") ** 2
         return WS + self.lambd * penalty
 
+    def calc_VT(self, counts):
+        feature_vectors = np.reshape(self.env.emissions, (-1, self.env.emissions.shape[2]))
+        V0 = self.lambd * np.eye(self.env.get_dim())
+        VT = feature_vectors.T @ np.diag(counts.flatten() * 4) @ feature_vectors + V0
+        return VT
+
+    def _isin_conf(self, mu: np.ndarray) -> List[bool]:
+        counts_indices, counts_num = np.unique(self.observations[:, :2], return_counts=True, axis=0)
+        counts = np.zeros((self.env.get_states_num(), self.env.get_actions_num()))
+        counts[counts_indices[:, 0], counts_indices[:, 1]] = counts_num
+        mat_VT = self.calc_VT(counts)
+        cholesky_VT = np.linalg.cholesky(mat_VT)
+        return [
+            cp.sum((cholesky_VT.T @ (mu[i] - self.estimated_mu[i])) ** 2) <= self.beta**2
+            for i in range(self.env.states_num)
+        ]
+
     def _estimate(self):
         mu = cp.Variable((self.env.states_num, self.env.latent_dim))
         empirical_transition_matrix, normalizer = self.estimate_transition_matrix(self.observations)
@@ -37,4 +54,5 @@ class WLS(Estimator):
 
         problem = cp.Problem(objective, constraints)
         problem.solve(solver=cp.MOSEK)
+        self.estimated_mu = mu.value
         return np.tensordot(self.env.emissions, mu.value.T, axes=1)

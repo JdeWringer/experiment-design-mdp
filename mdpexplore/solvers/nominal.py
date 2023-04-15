@@ -1,6 +1,7 @@
 from mdpexplore.solvers.solver_base import DiscreteSolver
 from mdpexplore.policies.policy_base import Policy
 from mdpexplore.solvers.lp import LP
+from mdpexplore.solvers.dp import DP
 
 
 class Nominal(DiscreteSolver):
@@ -9,4 +10,4 @@ class Nominal(DiscreteSolver):
         self.estimator = estimator
 
     def solve(self, reward) -> Policy:
-        return LP(self.env).solve(reward, self.estimator.estimate())
+        return DP(self.env).solve(reward, self.estimator.estimate())

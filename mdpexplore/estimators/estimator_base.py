@@ -2,17 +2,19 @@ import numpy as np
 from abc import ABC, abstractmethod
 from typing import List
 
+
 class Estimator(ABC):
     def __init__(
-            self,
-            env,
-            lambd: float = 1e-3,
-            beta: float = 2,
+        self,
+        env,
+        lambd: float = 1e-3,
+        beta: float = 2,
     ) -> None:
         self.env = env
         self.lambd = lambd
         self.beta = beta
-        
+        self.estimated_mu = np.ones((self.env.get_states_num(), self.env.get_dim())) / self.env.get_states_num()
+
         self.observations = np.empty((0, 3), dtype=int)
 
     def estimate(self):
@@ -48,7 +50,6 @@ class Estimator(ABC):
     def _estimate(self):
         ...
 
-    # @abstractmethod
-    # def _isin_conf(self, mu: np.ndarray) -> List[bool]:
-    #     ...
-
+    @abstractmethod
+    def _isin_conf(self, mu: np.ndarray) -> List[bool]:
+        ...
