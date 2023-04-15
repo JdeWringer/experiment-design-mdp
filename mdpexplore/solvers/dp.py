@@ -35,11 +35,11 @@ class DP(DiscreteSolver):
                 actions[i, state] = best_act
                 values[i, state] = new_values[idx]
 
-        if not self.env.constrained:
-            p = np.zeros((self.env.states_num, self.env.actions_num))
-            for s in range(self.env.states_num):
-                p[s, actions[i, s]] = 1.0
-            return SimplePolicy(self.env, p)
+        # if not self.env.constrained:
+        #     p = np.zeros((self.env.states_num, self.env.actions_num))
+        #     for s in range(self.env.states_num):
+        #         p[s, actions[i, s]] = 1.0
+        #     return SimplePolicy(self.env, p)
 
         ps = np.zeros((self.env.max_episode_length, self.env.states_num, self.env.actions_num))
         for i in range(self.env.max_episode_length):

@@ -58,5 +58,5 @@ class Optimistic(DiscreteSolver):
             ps.append(p.value)
             value_next = np.sum(p.value * q_function, axis=1)
 
-        return SimplePolicy(self.env, np.mean(np.array(ps), axis=0))
-        # return NonStationaryPolicy(self.env, ps[::-1])
+        # return SimplePolicy(self.env, np.mean(np.array(ps), axis=0))
+        return NonStationaryPolicy(self.env, np.array(ps[::-1]))

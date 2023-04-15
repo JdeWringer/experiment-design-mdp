@@ -193,7 +193,7 @@ class MdpExplore:
                 summarized_policy = SummarizedPolicyType(self.env, self.policies, self.weights, empirical)
                 empirical[summarized_policy.get_picked_policy_id()] += 1
             else:
-                summarized_policy = SummarizedPolicyType(self.env, self.policies, self.weights)
+                summarized_policy = self.policies[0]
 
             for _ in range(self.env.max_episode_length):
                 action = summarized_policy.next_action(self.env.state)

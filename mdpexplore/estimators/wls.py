@@ -53,6 +53,6 @@ class WLS(Estimator):
         constraints = [cp.sum(transition_matrix, axis=1) == 1, transition_matrix >= 0]
 
         problem = cp.Problem(objective, constraints)
-        problem.solve(solver=cp.MOSEK)
+        problem.solve()
         self.estimated_mu = mu.value
         return np.tensordot(self.env.emissions, mu.value.T, axes=1)

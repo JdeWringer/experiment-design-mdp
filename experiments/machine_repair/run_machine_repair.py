@@ -3,6 +3,7 @@ from mdpexplore.env.linear_worlds import MachineRepairSimplex
 from mdpexplore.solvers.lp import LP
 from mdpexplore.solvers.dp import DP
 from mdpexplore.policies.average_policy import AveragePolicy
+from mdpexplore.policies.density_policy import DensityPolicy
 from mdpexplore.utils.reward_functionals import DesignBayesD, DesignD
 from mdpexplore.mdpexplore import MdpExplore
 from mdpexplore.estimators.wls import WLS
@@ -35,6 +36,8 @@ if __name__ == "__main__":
 
     if args.policy == "average":
         args.policy = AveragePolicy
+    elif args.policy == "density":
+        args.policy = DensityPolicy
     else:
         raise ValueError("Invalid policy type")
 
